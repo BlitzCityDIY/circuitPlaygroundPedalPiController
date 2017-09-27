@@ -1,0 +1,156 @@
+#include <Wire.h>
+#include <SPI.h>
+#include <Keyboard.h>
+#include <Adafruit_NeoPixel.h>
+
+#define NUM_SWITCHES 6
+#define NUM_COLORS 6
+#define pixelPin 8
+
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(10, pixelPin, NEO_GRB + NEO_KHZ800);
+
+char* FX[NUM_SWITCHES] = {
+  "sudo ./distortion" ,
+  "sudo ./fuzz" ,
+  "sudo ./echo" ,
+  "sudo ./tremolo" ,
+  "sudo ./bitcrusher" ,
+  "sudo ./reverb" } ;
+
+char ctrlKey = KEY_LEFT_CTRL;
+
+char enterKey = KEY_RETURN;
+
+const uint16_t switch1 = 0;
+const uint16_t switch2 = 1;
+const uint16_t switch3 = 6;
+const uint16_t switch4 = 9;
+const uint16_t switch5 = 10;
+const uint16_t switch6 = 12;
+
+int startSwitch = 2;
+int stopSwitch = 3;
+
+uint32_t color1 = strip.Color(255, 127, 0); //distortion - orange
+uint32_t color2 = strip.Color(255, 0, 255); //fuzz - purple
+uint32_t color3 = strip.Color(127, 127, 0); //bitcrusher - yellow
+uint32_t color4 = strip.Color(0, 0, 255); //tremolo - blue
+uint32_t color5 = strip.Color(0, 255, 0); //reverb - green
+uint32_t color6 = strip.Color(0, 255, 127); //echo - teal
+
+const uint16_t switches[NUM_SWITCHES] = {switch1, switch2, switch3, switch4, switch5, switch6};
+
+uint32_t colors[NUM_COLORS] = {color1, color2, color3, color4, color5, color6};
+
+void setup() {
+  Keyboard.begin();
+  pinMode(2, INPUT_PULLUP); //start
+  pinMode(3, INPUT_PULLUP);
+  
+  {
+  for (int i = 0; i < NUM_SWITCHES; i ++)
+    pinMode(switches[i], INPUT_PULLUP); //fx switches
+  }
+
+  strip.begin();
+  strip.setBrightness(60);
+  strip.show();
+
+}
+
+void loop() {
+startScript();
+fxSwitches();
+endScript();
+}
+
+void fxSwitches(){
+  for (int i = 0; i < NUM_SWITCHES; i ++) {
+    if (digitalRead(switches[i]) == LOW) {
+      colorWipe(colors[i], 50);
+      delay(50);
+      Keyboard.print(FX[i]);
+      delay(100);
+      Keyboard.press(enterKey);
+      delay(100);
+      Keyboard.release(enterKey);
+      delay(500);
+      strip.clear();
+    }
+  }
+}
+
+void startScript () {
+  if (digitalRead(startSwitch) == LOW) {
+  rainbowCycle(20);
+  delay(50);
+  Keyboard.print("pi");
+  delay(50);
+  Keyboard.press(enterKey);
+  delay(100);
+  Keyboard.release(enterKey);
+  delay(5000);
+  Keyboard.print("raspberry");
+  delay(50);
+  Keyboard.press(enterKey);
+  delay(100);
+  Keyboard.release(enterKey);
+  delay(5000);
+  Keyboard.print("cd Pedal-Pi-All-Effects");
+  delay(50);
+  Keyboard.press(enterKey);
+  delay(100);
+  Keyboard.releaseAll();
+  delay(1000);
+  strip.clear();
+  }
+}
+
+void endScript(){
+ if (digitalRead(stopSwitch) == LOW) {
+    colorWipe(strip.Color(255, 0, 0), 50);
+    delay(50);
+    Keyboard.press(ctrlKey);
+    Keyboard.press('z');
+    delay(100);
+    Keyboard.releaseAll();
+    delay(500);
+    strip.clear();
+  }
+}
+
+uint32_t Wheel(byte WheelPos) {
+  WheelPos = 255 - WheelPos;
+  if(WheelPos < 85) {
+    return strip.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+  }
+  if(WheelPos < 170) {
+    WheelPos -= 85;
+    return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  }
+  WheelPos -= 170;
+  return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+}
+
+void rainbowCycle(uint8_t wait) {
+  uint16_t i, j;
+
+  for(j=0; j<256; j++) { // 5 cycles of all colors on wheel
+    for(i=0; i< strip.numPixels(); i++) {
+      strip.setPixelColor(i, Wheel(((i * 256 / strip.numPixels()) + j) & 255));
+    }
+    strip.show();
+    delay(wait);
+  }
+}
+
+void colorWipe(uint32_t c, uint8_t wait) {
+  for (uint16_t x = 0; x < NUM_COLORS; x++) {
+    uint32_t c = colors[x];
+  }
+  for(uint16_t i=0; i<strip.numPixels(); i++) {
+    strip.setPixelColor(i, c);
+    strip.show();
+    delay(wait);
+  }
+}
